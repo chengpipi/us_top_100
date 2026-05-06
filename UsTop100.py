@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import time
 import os
 from database import save_to_supabase, get_from_supabase
+from email_utils import send_email_report
 
 def get_nasdaq_nyse_tickers():
     """Fetches current NYSE and NASDAQ tickers, excluding OTC."""
@@ -187,3 +188,11 @@ if __name__ == "__main__":
         print("No stocks met the criteria on this day.")
     else:
         print(format_output(signals))
+
+    # 5. SEND EMAIL REPORT
+    print("\n[3] Sending Email Report...")
+    # Format tables for HTML email
+    top_100_html = format_output(top_100).head(20).to_html(classes='table table-striped')
+    signals_html = format_output(signals).to_html(classes='table table-success') if not signals.empty else ""
+    
+    send_email_report(date_found.date(), top_100_html, signals_html)
