@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .vscode/
 send_walkthrough.py
+test_db.py
+test_tz.py
