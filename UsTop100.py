@@ -143,7 +143,7 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         (results['Ranking'] <= 100) & 
         (results['Rel_Volume'] > 2) &
         (results['Price'] >= 1) &
-        ((results['Avg_Ranking_10d'] >= 160) | (results['Ranking'] - results['Avg_Ranking_10d'] >= 10))
+        ((results['Avg_Ranking_10d'] >= 160) | (results['Ranking'] - results['Avg_Ranking_10d'] >= 20))
     ]
 
     return actual_date, top_100, meets_conditions
