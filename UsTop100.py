@@ -165,9 +165,9 @@ def format_output(df_in):
 # --- RUN THE ANALYSIS ---
 if __name__ == "__main__":
     # Specify the date you want to analyze (None = Today)
-    # target_date_str = None 
+    target_date_str = None 
 
-    target_date_str = '2026-5-5'
+    #target_date_str = '2026-5-5'
 
     # 1. CHECK CACHE FIRST: If results exist in DB, use them
     top_100, signals = get_from_supabase(target_date_str)
