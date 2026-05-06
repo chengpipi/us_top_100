@@ -63,14 +63,23 @@ def save_to_supabase(date, top_100, signals):
     except Exception as e:
         print(f"\n[!] Error saving to database: {e}")
 
-def get_from_supabase(date):
+def get_from_supabase(date=None):
     """
     Retrieves existing analysis results for a specific date from Supabase.
+    If date is None, it defaults to today's date.
     Returns (top_100, signals) DataFrames, or (None, None) if not found.
     """
     db_url = os.environ.get("SUPABASE_DB_URL")
     if not db_url:
         return None, None
+
+    # If no date provided, default to today's date string
+    if date is None:
+        from datetime import datetime
+        date = datetime.now().date().strftime('%Y-%m-%d')
+    elif not isinstance(date, str):
+        # Ensure it's a string for the SQL query
+        date = str(date)
 
     try:
         from sqlalchemy import create_engine

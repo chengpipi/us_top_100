@@ -170,7 +170,7 @@ if __name__ == "__main__":
     top_100, signals = get_from_supabase(target_date_str)
     
     if top_100 is not None:
-        date_found = pd.to_datetime(target_date_str)
+        date_found = pd.to_datetime(target_date_str) if target_date_str else datetime.now()
     else:
         # 2. RUN FULL ANALYSIS: Only if data is missing from DB
         date_found, top_100, signals = analyze_stocks(target_date_str, ticker_limit=None)
