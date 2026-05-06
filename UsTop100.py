@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 import os
+import pytz
 from database import save_to_supabase, get_from_supabase
 from email_utils import send_email_report
 
@@ -31,7 +32,7 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
     if target_date_str:
         target_date = pd.to_datetime(target_date_str)
     else:
-        target_date = datetime.now()
+        target_date = datetime.now(pytz.timezone('US/Eastern'))
     
     # We need at least 15-20 days of data prior to target_date to calculate 10-day averages
     start_date = (target_date - timedelta(days=40)).strftime('%Y-%m-%d')
@@ -164,13 +165,15 @@ def format_output(df_in):
 # --- RUN THE ANALYSIS ---
 if __name__ == "__main__":
     # Specify the date you want to analyze (None = Today)
-    target_date_str = None 
+    # target_date_str = None 
+
+    target_date_str = '2026-5-5'
 
     # 1. CHECK CACHE FIRST: If results exist in DB, use them
     top_100, signals = get_from_supabase(target_date_str)
     
     if top_100 is not None:
-        date_found = pd.to_datetime(target_date_str) if target_date_str else datetime.now()
+        date_found = pd.to_datetime(target_date_str) if target_date_str else datetime.now(pytz.timezone('US/Eastern'))
     else:
         # 2. RUN FULL ANALYSIS: Only if data is missing from DB
         date_found, top_100, signals = analyze_stocks(target_date_str, ticker_limit=None)
@@ -190,9 +193,9 @@ if __name__ == "__main__":
         print(format_output(signals))
 
     # 5. SEND EMAIL REPORT
-    print("\n[3] Sending Email Report...")
+    print("\n[C] Sending Email Report...")
     # Format tables for HTML email
-    top_100_html = format_output(top_100).head(20).to_html(classes='table table-striped')
-    signals_html = format_output(signals).to_html(classes='table table-success') if not signals.empty else ""
+    top_100_html = format_output(top_100).head(20).rename_axis('Ticker').reset_index().to_html(classes='table table-striped', index=False)
+    signals_html = format_output(signals).rename_axis('Ticker').reset_index().to_html(classes='table table-success', index=False) if not signals.empty else ""
     
     send_email_report(date_found.date(), top_100_html, signals_html)
