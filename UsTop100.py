@@ -67,13 +67,15 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         time.sleep(3)
 
     if not all_data:
-        return "No data found for this period."
+        print("\n[!] Error: No data could be downloaded for any tickers. Check connectivity or Yahoo Finance status.")
+        return None, None, None
 
     # Combine all batches
     data = pd.concat(all_data, axis=1)
     
     if data.empty:
-        return "Combined data is empty."
+        print("\n[!] Error: Combined data is empty.")
+        return None, None, None
 
     # Try to find Price in common labels
     metrics = data.columns.levels[0].tolist()
@@ -88,7 +90,8 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         if price_metrics:
             close = data[price_metrics[0]]
         else:
-            return f"Critical price metrics missing. Available: {metrics}"
+            print(f"\n[!] Error: Critical price metrics missing. Available: {metrics}")
+            return None, None, None
         
     volume = data['Volume']
 
@@ -118,7 +121,8 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         actual_date = daily_ranks.index[idx]
         print(f"Targeting date: {actual_date}")
     except Exception:
-        return "Target date out of range."
+        print(f"\n[!] Error: Target date {target_date.date()} out of range for the downloaded data.")
+        return None, None, None
 
     # Consolidate results for the specific day
     results_pre = pd.DataFrame({
@@ -167,7 +171,7 @@ if __name__ == "__main__":
     # Specify the date you want to analyze (None = Today)
     target_date_str = None 
 
-    #target_date_str = '2026-5-5'
+    #target_date_str = '2026-5-6'
 
     # 1. CHECK CACHE FIRST: If results exist in DB, use them
     top_100, signals = get_from_supabase(target_date_str)
@@ -178,6 +182,10 @@ if __name__ == "__main__":
         # 2. RUN FULL ANALYSIS: Only if data is missing from DB
         date_found, top_100, signals = analyze_stocks(target_date_str, ticker_limit=None)
         
+        if date_found is None:
+            print("\n[!] Analysis failed. Skipping save and report.")
+            exit(1)
+            
         # 3. SAVE RESULTS: Store for future use
         save_to_supabase(date_found.date(), top_100, signals)
 
