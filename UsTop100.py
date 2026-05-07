@@ -8,6 +8,20 @@ import pytz
 from database import save_to_supabase, get_from_supabase
 from email_utils import send_email_report
 
+def get_target_date(target_date_str=None):
+    """Calculates the target date based on US/Eastern time and 6-hour market close rule."""
+    if target_date_str:
+        return pd.to_datetime(target_date_str)
+    
+    # Get current time in US/Eastern
+    now_et = datetime.now(pytz.timezone('US/Eastern'))
+    
+    # If it's before 10:00 PM ET (6 hours after 4 PM close), target yesterday
+    if now_et.hour < 22:
+        return now_et - timedelta(days=1)
+    else:
+        return now_et
+
 def get_nasdaq_nyse_tickers():
     """Fetches current NYSE and NASDAQ tickers, excluding OTC."""
     # Using a reliable public CSV source for NASDAQ and NYSE
@@ -29,10 +43,7 @@ def get_nasdaq_nyse_tickers():
 
 def analyze_stocks(target_date_str=None, ticker_limit=None):
     # 1. Setup Dates
-    if target_date_str:
-        target_date = pd.to_datetime(target_date_str)
-    else:
-        target_date = datetime.now(pytz.timezone('US/Eastern'))
+    target_date = get_target_date(target_date_str)
     
     # We need at least 15-20 days of data prior to target_date to calculate 10-day averages
     start_date = (target_date - timedelta(days=40)).strftime('%Y-%m-%d')
@@ -168,19 +179,22 @@ def format_output(df_in):
 
 # --- RUN THE ANALYSIS ---
 if __name__ == "__main__":
-    # Specify the date you want to analyze (None = Today)
+    # Specify the date you want to analyze (None = Auto-detect)
     target_date_str = None 
+    # target_date_str = '2026-05-06'
 
-    #target_date_str = '2026-5-6'
+    # 1. Calculate the actual date we are targeting
+    target_date = get_target_date(target_date_str)
+    target_date_only = target_date.date()
 
-    # 1. CHECK CACHE FIRST: If results exist in DB, use them
-    top_100, signals = get_from_supabase(target_date_str)
+    # 2. CHECK CACHE FIRST: If results exist in DB, use them
+    top_100, signals = get_from_supabase(target_date_only.strftime('%Y-%m-%d'))
     
     if top_100 is not None:
-        date_found = pd.to_datetime(target_date_str) if target_date_str else datetime.now(pytz.timezone('US/Eastern'))
+        date_found = target_date
     else:
-        # 2. RUN FULL ANALYSIS: Only if data is missing from DB
-        date_found, top_100, signals = analyze_stocks(target_date_str, ticker_limit=None)
+        # 3. RUN FULL ANALYSIS: Only if data is missing from DB
+        date_found, top_100, signals = analyze_stocks(target_date_only.strftime('%Y-%m-%d'), ticker_limit=None)
         
         if date_found is None:
             print("\n[!] Analysis failed. Skipping save and report.")
