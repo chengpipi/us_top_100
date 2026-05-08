@@ -181,7 +181,7 @@ def format_output(df_in):
 if __name__ == "__main__":
     # Specify the date you want to analyze (None = Auto-detect)
     target_date_str = None 
-    # target_date_str = '2026-05-06'
+    #target_date_str = '2026-05-04'
 
     # 1. Calculate the actual date we are targeting
     target_date = get_target_date(target_date_str)
