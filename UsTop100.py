@@ -220,4 +220,9 @@ if __name__ == "__main__":
     top_100_html = format_output(top_100).head(20).rename_axis('Ticker').reset_index().to_html(classes='table table-striped', index=False)
     signals_html = format_output(signals).rename_axis('Ticker').reset_index().to_html(classes='table table-success', index=False) if not signals.empty else ""
     
-    send_email_report(date_found.date(), top_100_html, signals_html)
+    # Generate a comma-separated list of signal tickers
+    signal_tickers = ""
+    if not signals.empty:
+        signal_tickers = "(" + ", ".join(signals.index.tolist()) + ")"
+    
+    send_email_report(date_found.date(), top_100_html, signals_html, signal_tickers)

@@ -3,7 +3,7 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def send_email_report(date, top_100_html, signals_html):
+def send_email_report(date, top_100_html, signals_html, signal_tickers=""):
     """Sends the analysis report via email."""
     sender = os.environ.get("EMAIL_SENDER")
     password = os.environ.get("EMAIL_PASSWORD")
@@ -20,12 +20,15 @@ def send_email_report(date, top_100_html, signals_html):
     message["To"] = receivers
 
     # Create HTML Body
+    ticker_list_html = f"<p><strong>Signal Tickers:</strong> {signal_tickers}</p>" if signal_tickers else ""
+    
     html = f"""
     <html>
       <body>
         <h2>Daily Stock Analysis: {date}</h2>
         <hr>
         <h3>[B] STOCKS MEETING ALL CONDITIONS (Signals)</h3>
+        {ticker_list_html}
         {signals_html if signals_html else "<p>No signals found today.</p>"}
         <br>
         <h3>[A] TOP 100 STOCKS BY TURNOVER (Top 20)</h3>
