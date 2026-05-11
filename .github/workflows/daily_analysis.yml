@@ -2,9 +2,9 @@ name: Daily Stock Analysis
 
 on:
   schedule:
-    # 00:00 UTC is 8:00 PM ET (4 hours after NASDAQ close)
-    # Runs Tuesday to Saturday (Monday-Friday ET)
-    - cron: '0 0 * * 2-6'
+    # 23:00 UTC is 7:00 PM ET (3 hours after NASDAQ close)
+    # Runs Monday to Friday ET
+    - cron: '0 23 * * 1-5'
   workflow_dispatch: # Allows manual triggering for testing
 
 jobs:
