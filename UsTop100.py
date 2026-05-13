@@ -16,8 +16,8 @@ def get_target_date(target_date_str=None):
     # Get current time in US/Eastern
     now_et = datetime.now(pytz.timezone('US/Eastern'))
     
-    # If it's before 10:00 PM ET (6 hours after 4 PM close), target yesterday
-    if now_et.hour < 22:
+    # If it's before 8:30 PM ET (4.5 hours after 4 PM close), target yesterday
+    if now_et.hour < 20 or (now_et.hour == 20 and now_et.minute < 30):
         return now_et - timedelta(days=1)
     else:
         return now_et
@@ -181,7 +181,7 @@ def format_output(df_in):
 if __name__ == "__main__":
     # Specify the date you want to analyze (None = Auto-detect)
     target_date_str = None 
-    #target_date_str = '2026-05-04'
+    #target_date_str = '2026-05-06'
 
     # 1. Calculate the actual date we are targeting
     target_date = get_target_date(target_date_str)
