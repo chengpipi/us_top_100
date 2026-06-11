@@ -106,6 +106,14 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         else:
             print(f"\n[!] Error: Critical price metrics missing. Available: {metrics}")
             return None, None, None
+    # Identify which prices were originally NaN on the target date (before filling)
+    try:
+        temp_idx = close.index.get_indexer([target_date], method='pad')[0]
+        originally_nan_series = close.iloc[temp_idx].isna()
+        filled_tickers = originally_nan_series[originally_nan_series].index.tolist()
+    except Exception:
+        filled_tickers = []
+
     # Forward-fill prices along the date axis to handle Yahoo Finance API delays or missing final-day price bars.
     # Backward-fill as a secondary fallback if a ticker has NaNs at the beginning of the download window.
     close = close.ffill(axis=0).bfill(axis=0)
@@ -169,7 +177,7 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         ((results['Avg_Ranking_10d'] >= 160) | (results['Ranking'] - results['Avg_Ranking_10d'] >= 20))
     ]
 
-    return actual_date, top_100, meets_conditions
+    return actual_date, top_100, meets_conditions, filled_tickers
 
 def format_output(df_in):
     """Formats a dataframe for pretty printing without modifying the original data."""
@@ -196,11 +204,12 @@ if __name__ == "__main__":
     # 2. CHECK CACHE FIRST: If results exist in DB, use them
     top_100, signals = get_from_supabase(target_date_only.strftime('%Y-%m-%d'))
     
+    filled_tickers = []
     if top_100 is not None:
         date_found = target_date
     else:
         # 3. RUN FULL ANALYSIS: Only if data is missing from DB
-        date_found, top_100, signals = analyze_stocks(target_date_only.strftime('%Y-%m-%d'), ticker_limit=None)
+        date_found, top_100, signals, filled_tickers = analyze_stocks(target_date_only.strftime('%Y-%m-%d'), ticker_limit=None)
         
         if date_found is None:
             print("\n[!] Analysis failed. Skipping save and report.")
@@ -212,23 +221,36 @@ if __name__ == "__main__":
     # 4. Format and Display
     print(f"\nAnalysis Results for: {date_found.date()}")
     print("\n[A] TOP 100 STOCKS BY TURNOVER (Sample):")
-    print(format_output(top_100).head(10))
+    
+    # Create display versions where filled tickers have an asterisk
+    display_top_100 = top_100.copy()
+    display_signals = signals.copy()
+    if filled_tickers:
+        display_top_100.index = [f"{t}*" if t in filled_tickers else t for t in display_top_100.index]
+        display_signals.index = [f"{t}*" if t in filled_tickers else t for t in display_signals.index]
+
+    print(format_output(display_top_100).head(10))
 
     print("\n[B] STOCKS MEETING ALL CONDITIONS (Surge + High Rel Vol):")
-    if signals.empty:
+    if display_signals.empty:
         print("No stocks met the criteria on this day.")
     else:
-        print(format_output(signals))
+        print(format_output(display_signals))
 
     # 5. SEND EMAIL REPORT
     print("\n[C] Sending Email Report...")
     # Format tables for HTML email
-    top_100_html = format_output(top_100).head(20).rename_axis('Ticker').reset_index().to_html(classes='table table-striped', index=False)
-    signals_html = format_output(signals).rename_axis('Ticker').reset_index().to_html(classes='table table-success', index=False) if not signals.empty else ""
+    top_100_html = format_output(display_top_100).head(20).rename_axis('Ticker').reset_index().to_html(classes='table table-striped', index=False)
+    signals_html = format_output(display_signals).rename_axis('Ticker').reset_index().to_html(classes='table table-success', index=False) if not display_signals.empty else ""
     
-    # Generate a comma-separated list of signal tickers
+    # Generate a comma-separated list of signal tickers (using original index)
     signal_tickers = ""
     if not signals.empty:
         signal_tickers = "(" + ", ".join(signals.index.tolist()) + ")"
     
-    send_email_report(date_found.date(), top_100_html, signals_html, signal_tickers)
+    # Check if we have any filled tickers that are actually in the top 100 or signals
+    has_filled_prices = False
+    if filled_tickers:
+        has_filled_prices = any(t in filled_tickers for t in top_100.index) or any(t in filled_tickers for t in signals.index)
+
+    send_email_report(date_found.date(), top_100_html, signals_html, signal_tickers, has_filled_prices=has_filled_prices)

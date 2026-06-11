@@ -3,7 +3,7 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def send_email_report(date, top_100_html, signals_html, signal_tickers=""):
+def send_email_report(date, top_100_html, signals_html, signal_tickers="", has_filled_prices=False):
     """Sends the analysis report via email."""
     sender = os.environ.get("EMAIL_SENDER")
     password = os.environ.get("EMAIL_PASSWORD")
@@ -22,6 +22,10 @@ def send_email_report(date, top_100_html, signals_html, signal_tickers=""):
     # Create HTML Body
     ticker_list_html = f"<p><strong>Signal Tickers:</strong> {signal_tickers}</p>" if signal_tickers else ""
     
+    footnote_html = ""
+    if has_filled_prices:
+        footnote_html = '<p style="color: #c9302c; font-size: 12px; font-weight: bold; margin-top: 10px;">* Note: Prices for tickers marked with * were unavailable due to Yahoo Finance API delays and have been filled using the previous day\'s close price.</p>'
+
     html = f"""
     <html>
       <body>
@@ -33,6 +37,7 @@ def send_email_report(date, top_100_html, signals_html, signal_tickers=""):
         <br>
         <h3>[A] TOP 100 STOCKS BY TURNOVER (Top 20)</h3>
         {top_100_html}
+        {footnote_html}
         <br>
         <p style="color: gray; font-size: 12px;">This is an automated report from your GitHub Actions workflow.</p>
       </body>
