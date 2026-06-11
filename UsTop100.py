@@ -106,7 +106,10 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
         else:
             print(f"\n[!] Error: Critical price metrics missing. Available: {metrics}")
             return None, None, None
-        
+    # Forward-fill prices along the date axis to handle Yahoo Finance API delays or missing final-day price bars.
+    # Backward-fill as a secondary fallback if a ticker has NaNs at the beginning of the download window.
+    close = close.ffill(axis=0).bfill(axis=0)
+
     volume = data['Volume']
 
     # 4. Calculations
