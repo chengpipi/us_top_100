@@ -91,10 +91,13 @@ def analyze_stocks(target_date_str=None, ticker_limit=None):
     # Try to find Price in common labels
     metrics = data.columns.levels[0].tolist()
     
-    if 'Adj Close' in metrics and data['Adj Close'].notna().sum().sum() > 0:
-        close = data['Adj Close']
-    elif 'Close' in metrics:
+    # Prefer 'Close' over 'Adj Close' as 'Close' is always present and auto-adjusted by default in yfinance,
+    # whereas 'Adj Close' can be present for only a small subset of tickers (e.g. failed/special downloads)
+    # causing other tickers to be dropped when combining batch data.
+    if 'Close' in metrics:
         close = data['Close']
+    elif 'Adj Close' in metrics and data['Adj Close'].notna().sum().sum() > 0:
+        close = data['Adj Close']
     else:
         # Fallback to any metric that looks like a price
         price_metrics = [m for m in metrics if 'Close' in m or 'Price' in m]
